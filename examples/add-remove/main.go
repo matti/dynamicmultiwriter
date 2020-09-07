@@ -15,6 +15,7 @@ func main() {
 
 	dw := dynamicmultiwriter.New()
 	dw.Add(pw1, pw2)
+	
 	cmd := exec.Command("ping", "-c", "10", "google.com")
 	cmd.Stdout = dw
 
