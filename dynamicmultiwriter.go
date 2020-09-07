@@ -17,7 +17,7 @@ func New() *DynamicMultiWriter {
 }
 
 func (d *DynamicMultiWriter) Write(p []byte) (n int, err error) {
-	for _, w := range d.writers {
+	for w := range d.writers {
 		go func(w io.Writer) {
 			w.Write(p)
 		}(w)
@@ -26,15 +26,15 @@ func (d *DynamicMultiWriter) Write(p []byte) (n int, err error) {
 }
 
 // Add ...
-func (d *DynamicMultiWriter) Add(writers ...io.Writer) {
-	for _, w := range writers {
+func (d *DynamicMultiWriter) Add(ws ...io.Writer) {
+	for _, w := range ws {
 		d.writers[w] = w
 	}
 }
 
 // Remove ...
-func (d *DynamicMultiWriter) Remove(writers ...io.Writer) {
-	for _, w := range writers {
+func (d *DynamicMultiWriter) Remove(ws ...io.Writer) {
+	for _, w := range ws {
 		delete(d.writers, w)
 	}
 }
