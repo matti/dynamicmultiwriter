@@ -3,7 +3,6 @@ package dynamicmultiwriter
 import (
 	"io"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,30 +13,42 @@ func Test(t *testing.T) {
 	r1, w1 := io.Pipe()
 	r2, w2 := io.Pipe()
 
+	didread1 := make(chan bool)
+	didread2 := make(chan bool)
+
+	p1 := make([]byte, len(hello))
+	p2 := make([]byte, len(hello))
+
+	go func() {
+		for {
+			r1.Read(p1)
+			didread1 <- true
+		}
+	}()
+	go func() {
+		for {
+			r2.Read(p2)
+			didread2 <- true
+		}
+	}()
+
 	dw := New()
 	dw.Add(w1, w2)
 	dw.Write(hello)
 
-	p1 := make([]byte, len(hello))
-	p2 := make([]byte, len(hello))
-	r1.Read(p1)
-	r2.Read(p2)
+	<-didread1
+	assert.Equal(t, string(hello), string(p1))
+	<-didread2
+	assert.Equal(t, string(hello), string(p2))
 
-	assert.EqualValues(t, string(p1), hello)
-	assert.EqualValues(t, string(p2), hello)
-
-	dw.Remove(w2)
+	dw.Remove(w1)
+	p2 = []byte("elloh")
 	dw.Write(hello)
-	pp1 := make([]byte, len(hello))
-	pp2 := make([]byte, len(hello))
-	r1.Read(pp1)
-
-	// blocks
+	<-didread2
 	go func() {
-		r2.Read(pp2)
+		<-didread1
+		panic("r1 got another message")
 	}()
-	time.Sleep(time.Second * 1)
 
-	assert.EqualValues(t, string(pp1), hello)
-	assert.EqualValues(t, pp2, make([]byte, len(hello)))
+	assert.Equal(t, string(hello), string(p2))
 }
